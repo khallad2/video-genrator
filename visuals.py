@@ -10,12 +10,10 @@ logging.basicConfig(filename='visuals_download.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-# Function to search Bing for images and videos using web scraping
+# Function to search Bing for images using web scraping
 def bing_search(query, search_type="images"):
     if search_type == "images":
         search_url = f"https://www.bing.com/images/search?q={query.replace(' ', '+')}&form=HDRSC2"
-    elif search_type == "videos":
-        search_url = f"https://www.bing.com/videos/search?q={query.replace(' ', '+')}&form=HDRSC3"
     else:
         logging.error(f"Invalid search type: {search_type}")
         return []
@@ -28,20 +26,12 @@ def bing_search(query, search_type="images"):
         soup = BeautifulSoup(response.text, 'html.parser')
         media_urls = []
 
-        if search_type == "images":
-            # Extract image URLs from the search results
-            image_elements = soup.find_all('a', {'class': 'iusc'})
-            for element in image_elements:
-                m = re.search(r'murl":"(https://.*?)"', str(element))
-                if m:
-                    media_urls.append(m.group(1))
-        elif search_type == "videos":
-            # Extract video URLs from the search results
-            video_elements = soup.find_all('a', {'class': 'mc_vtvc_link'})
-            for element in video_elements:
-                href = element.get('href')
-                if href:
-                    media_urls.append(f"https://www.bing.com{href}")
+        # Extract image URLs from the search results
+        image_elements = soup.find_all('a', {'class': 'iusc'})
+        for element in image_elements:
+            m = re.search(r'murl":"(https://.*?)"', str(element))
+            if m:
+                media_urls.append(m.group(1))
 
         return media_urls
     except requests.exceptions.RequestException as e:
@@ -70,42 +60,44 @@ def download_media(url, output_folder, media_type="image"):
 
 # Main script to perform Bing searches and download related visuals
 def main():
-    # Define keywords for searching
-    keywords = ["war in ukraine today", "war in middleEast today", "Hamas and Israel", "Hamas Defense", "Israel Attack", "Damage in the middle east", "Lebanon and Israel"]
+    today = date.today().strftime("%Y-%m-%d")
+    # Read keywords from image_search.txt
+    keywords_file = f"image_search_{today}.txt"
     output_folder = "visuals"
 
     # Create output folder if it doesn't exist
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    # Perform Bing search for images and videos related to the keywords
+    # Check if keywords file exists
+    if not os.path.exists(keywords_file):
+        logging.error(f"Keywords file '{keywords_file}' not found.")
+        print(f"Keywords file '{keywords_file}' not found.")
+        return
+
+    with open(keywords_file, "r", encoding="utf-8") as file:
+        keywords = [line.strip() for line in file.readlines()]
+
+    # Perform Bing search for images related to the keywords
     logging.info("Performing Bing search for visuals related to the keywords.")
     total_images_downloaded = 0
-    total_videos_downloaded = 0
-    max_images = 100
-    max_videos = 10
+    max_images_per_keyword = 10
 
     for keyword in keywords:
-        if total_images_downloaded >= max_images and total_videos_downloaded >= max_videos:
-            break
-
         logging.info(f"Searching for visuals related to: {keyword}")
         search_results_images = bing_search(keyword, search_type="images")
-        search_results_videos = bing_search(keyword, search_type="videos")
 
         # Extract and download images
+        images_downloaded = 0
         for url in search_results_images:
-            if total_images_downloaded >= max_images:
+            if images_downloaded >= max_images_per_keyword:
                 break
             if download_media(url, output_folder, media_type="image"):
+                images_downloaded += 1
                 total_images_downloaded += 1
 
-        # Extract and download videos
-        for url in search_results_videos:
-            if total_videos_downloaded >= max_videos:
-                break
-            if download_media(url, output_folder, media_type="video"):
-                total_videos_downloaded += 1
+    logging.info(f"Total images downloaded: {total_images_downloaded}")
+    print(f"Total images downloaded: {total_images_downloaded}")
 
 
 # Run the script

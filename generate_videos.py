@@ -21,11 +21,14 @@ def load_visuals(visuals_folder, max_images=20, max_videos=10):
     """
     images = []
     videos = []
+    used_files = set()
     for file in os.listdir(visuals_folder):
-        if file.endswith(".jpg") and len(images) < max_images:
+        if file.endswith(".jpg") and len(images) < max_images and file not in used_files:
             images.append(os.path.join(visuals_folder, file))
-        elif file.endswith(".mp4") and len(videos) < max_videos:
+            used_files.add(file)
+        elif file.endswith(".mp4") and len(videos) < max_videos and file not in used_files:
             videos.append(os.path.join(visuals_folder, file))
+            used_files.add(file)
     return images, videos
 
 def create_video(images, videos, voiceover_path, output_filename, background_music_path=None):
@@ -34,15 +37,15 @@ def create_video(images, videos, voiceover_path, output_filename, background_mus
     """
     clips = []
 
-    # Add images as clips with effects
+    # Add images as clips with effects, ensuring each scene is at least 10 seconds
     for image_path in images:
-        image_clip = ImageClip(image_path, duration=5)
+        image_clip = ImageClip(image_path, duration=10)
         image_clip = Resize(height=1080).apply(image_clip)  # Resize to fit the video dimensions
         image_clip = FadeIn(1).apply(image_clip)
         image_clip = FadeOut(1).apply(image_clip)
         clips.append(image_clip)
 
-    # Add video clips with transitions
+    # Add video clips with transitions, ensuring each scene is at least 10 seconds
     for video_path in videos:
         try:
             video_clip = VideoFileClip(video_path)
@@ -67,31 +70,23 @@ def create_video(images, videos, voiceover_path, output_filename, background_mus
 
     # Add Arabic subtitles
     subtitles = [
-        ("الحرب في أوكرانيا اليوم", 0, 5),
-        ("الحرب في الشرق الأوسط اليوم", 5, 10),
+        ("الحرب في أوكرانيا اليوم", 0, 10),
+        ("الحرب في الشرق الأوسط اليوم", 10, 20),
     ]
     for text, start, end in subtitles:
         subtitle_clip = TextClip(font='Arial', text=text, font_size=24, duration=end-start, color='white', size=(1920, 100), margin=(None, None), bg_color=None, stroke_color=None, stroke_width=0, method='caption', text_align='left', horizontal_align='center', vertical_align='center', interline=4, transparent=True)
         final_clip = CompositeVideoClip([final_clip, subtitle_clip])
 
-    # Add the voiceover
+    # Add background music if provided, and ensure it plays before the voiceover
+    if background_music_path and os.path.exists(background_music_path):
+        background_music = AudioFileClip(background_music_path)
+        # final_clip = final_clip.set_audio(background_music)
+
+    # Add the voiceover after background music finishes
     if os.path.exists(voiceover_path):
         voiceover = AudioFileClip(voiceover_path)
-        if final_clip.audio is not None:
-            final_audio = CompositeAudioClip([final_clip.audio, voiceover])
-        else:
-            final_audio = voiceover
-        final_clip = final_clip.with_audio(final_audio)
-
-    # Add background music if provided
-    if background_music_path and os.path.exists(background_music_path):
-        background_music = AudioFileClip(background_music_path)  # Lower volume for background music
-        background_music.max_volume('0.03')
-        if final_clip.audio is not None:
-            final_audio = CompositeAudioClip([final_clip.audio, background_music])
-        else:
-            final_audio = background_music
-        final_clip = final_clip.with_audio(final_audio)
+        final_audio = CompositeAudioClip([final_clip.audio, voiceover])
+        # final_clip = final_clip.set_audio(final_audio)
 
     # Write the output video file
     try:

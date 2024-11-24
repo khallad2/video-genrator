@@ -50,8 +50,10 @@ def create_script(news_items, regions, video_length_minutes):
 
     for item in news_items:
         if any(region in item.get('title', '') or region in item.get('description', '') for region in regions):
-            script_lines.append(
-                f"• {item.get('title', 'No Title')} - {item.get('description', 'No Description')} Source: {item.get('url', 'No URL')}")
+            title = item.get('title', 'No Title')
+            description = item.get('description', 'No Description')
+            url = item.get('url', 'No URL')
+            script_lines.append(f"• {title} - {description} Source: {url}")
             script_lines.append("\n")
             item_count += 1
 
@@ -60,37 +62,62 @@ def create_script(news_items, regions, video_length_minutes):
     while item_count * estimated_time_per_item < total_seconds:
         try:
             filler_content = model.generate_content(
-                "Provide a concise and informative summary of the current global conflict developments without repeating introductory phrases. Focus on war and conflict events in MiddleEast and Europe, key updates, and notable diplomatic activities, ensuring a continuous and engaging flow throughout the segment. The tone should be authoritative and engaging."
+                "Provide a concise and informative summary of the current global conflict developments without repeating introductory phrases. Focus on war and conflict events in MiddleEast and Europe, key updates, and notable diplomatic activities, ensuring a continuous and engaging flow throughout the segment. The tone should be authoritative and engaging. Write a list of key phrases for images under a section called keyWordsForImages. Each keyword should be on a separate line."
             )
-            script_lines.append("\n")
-            script_lines.append(filler_content.text)
+            response_text = filler_content.text
+            if "keyWordsForImages" in response_text:
+                script_part, keywords_part = response_text.split("keyWordsForImages", 1)
+                script_lines.append("\n")
+                script_lines.append(script_part.strip())
+                keywords = keywords_part.strip().splitlines()
+            else:
+                script_lines.append("\n")
+                script_lines.append(response_text)
+                keywords = []
         except Exception as e:
             logging.error(f"Error generating filler content: {e}")
             script_lines.append("\nError generating filler content. Please check the logs.\n")
+            keywords = []
         item_count += 1
 
     script_lines.append("\n")
     script_lines.append(
         "That's all for today on the major conflicts and diplomatic efforts unfolding globally. Stay informed by subscribing to our channel and turning on notifications for daily updates!")
 
-    return "\n".join(script_lines)
+    return "\n".join(script_lines), keywords
+
+
+# Function to save keywords to a text file
+def save_keywords(keywords, filename):
+    unique_keywords = set(keywords)
+    with open(filename, "w", encoding="utf-8") as file:
+        for keyword in unique_keywords:
+            words = keyword.split()[:3]  # Limit to three words per line
+            if len(words) > 0:
+                file.write(" ".join(words) + "\n")
 
 
 # Main script
 def main():
     logging.info("We are writing the script. It can take up to 3 minutes!")
     # Create the script
-    script_content = create_script([], regions, video_length_minutes)
+    script_content, keywords = create_script([], regions, video_length_minutes)
     logging.info("We are creating the script file. It can take up to 1 minute!")
     # Save the script to a .txt file with today's date
     today = date.today().strftime("%Y-%m-%d")
-    filename = f"war_news_script_{today}.txt"
+    script_filename = f"war_news_script_{today}.txt"
 
-    with open(filename, "w", encoding="utf-8") as file:
+    with open(script_filename, "w", encoding="utf-8") as file:
         file.write(script_content)
 
-    logging.info(f"The script file '{filename}' has been created and is ready!")
-    print(f"The script file '{filename}' has been created and is ready!")
+    logging.info(f"The script file '{script_filename}' has been created and is ready!")
+    print(f"The script file '{script_filename}' has been created and is ready!")
+
+    # Save the keywords to a text file for image search
+    keywords_filename = f"image_search_{today}.txt"
+    save_keywords(keywords, keywords_filename)
+    logging.info(f"The keywords file '{keywords_filename}' has been created and is ready!")
+    print(f"The keywords file '{keywords_filename}' has been created and is ready!")
 
 
 # Run the script

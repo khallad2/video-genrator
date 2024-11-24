@@ -14,11 +14,8 @@ load_dotenv()
 # Set up Elevenlabs API key
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 
-# Set up Elevenlabs VOICE_ID
-ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
-
 # Elevenlabs API endpoint
-ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech/" + ELEVENLABS_VOICE_ID
+ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
 
 # Function to read the script from a text file in chunks
@@ -50,18 +47,20 @@ def generate_voiceover(script_filename, output_filename):
     url = ELEVENLABS_API_URL.format(voice_id=voice_id)
 
     try:
-        with open(output_filename, 'wb') as audio_file:
-            for script_chunk in read_script_in_chunks(script_filename):
-                payload = {
-                    "text": script_chunk,
-                    "model_id": "eleven_monolingual_v1",
-                    "voice_settings": {
-                        "stability": 0.5,
-                        "similarity_boost": 0.5
-                    }
+        with open(script_filename, "r", encoding="utf-8") as script_file:
+            script_content = script_file.read()
+            payload = {
+                "text": script_content,
+                "model_id": "eleven_monolingual_v1",
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.5
                 }
-                response = requests.post(url, headers=headers, json=payload, stream=True)
-                response.raise_for_status()
+            }
+            response = requests.post(url, headers=headers, json=payload, stream=True)
+            response.raise_for_status()
+
+            with open(output_filename, 'wb') as audio_file:
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
                         audio_file.write(chunk)
@@ -70,6 +69,12 @@ def generate_voiceover(script_filename, output_filename):
     except requests.exceptions.RequestException as e:
         logging.error(f"Error generating voiceover: {e}")
         print(f"Error generating voiceover. Please check the logs.")
+        exit(1)
+    except FileNotFoundError:
+        logging.error(f"Script file '{script_filename}' not found.")
+        exit(1)
+    except Exception as e:
+        logging.error(f"Error generating voiceover: {e}")
         exit(1)
 
 
