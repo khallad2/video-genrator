@@ -29,7 +29,7 @@ API_KEY = os.getenv("API_KEY")
 genai.configure(api_key=API_KEY)
 
 # Specify the regions for war news coverage
-regions = ["Europe", "Middle East"]
+regions = ["Europe"]
 
 # Set the desired video length in minutes
 video_length_minutes = 1
@@ -41,7 +41,7 @@ def create_script(news_items, regions, video_length_minutes):
     script_lines.append("Welcome to today's in-depth coverage of the ongoing global conflicts and important updates!")
     script_lines.append("\n")
     script_lines.append(
-        "Here are the top developments in Europe and the Middle East, providing you with all the critical updates from the front lines and diplomatic tables around the world:")
+        "Here are the top developments in Europe, providing you with all the critical updates from the front lines and diplomatic tables around the world:")
     script_lines.append("\n")
 
     item_count = 0
@@ -59,25 +59,20 @@ def create_script(news_items, regions, video_length_minutes):
 
     # Add filler content if there are not enough news items to reach the desired video length
     model = genai.GenerativeModel("gemini-1.5-flash")
+    keywords = []
     while item_count * estimated_time_per_item < total_seconds:
         try:
             filler_content = model.generate_content(
-                "Provide a concise and informative summary of the current global conflict developments without repeating introductory phrases. Focus on war and conflict events in MiddleEast and Europe, key updates, and notable diplomatic activities, ensuring a continuous and engaging flow throughout the segment. The tone should be authoritative and engaging. Write a list of key phrases for images under a section called keyWordsForImages. Each keyword should be on a separate line."
+                "Provide a concise and informative summary of maximum 2 lines about the current European conflict developments without repeating introductory phrases. Focus on war and conflict events in Europe, key updates, and notable diplomatic activities, ensuring a continuous and engaging flow throughout the segment. The tone should be authoritative and engaging. Include a few keywords at the end under the title 'keyWordsForImages'."
             )
             response_text = filler_content.text
-            if "keyWordsForImages" in response_text:
-                script_part, keywords_part = response_text.split("keyWordsForImages", 1)
-                script_lines.append("\n")
-                script_lines.append(script_part.strip())
-                keywords = keywords_part.strip().splitlines()
-            else:
-                script_lines.append("\n")
-                script_lines.append(response_text)
-                keywords = []
+            script_part, keyword_part = response_text.split('keyWordsForImages', 1)
+            script_lines.append("\n")
+            script_lines.append(script_part.strip())
+            keywords.extend(keyword_part.strip().split('\n'))
         except Exception as e:
             logging.error(f"Error generating filler content: {e}")
             script_lines.append("\nError generating filler content. Please check the logs.\n")
-            keywords = []
         item_count += 1
 
     script_lines.append("\n")
@@ -97,6 +92,19 @@ def save_keywords(keywords, filename):
                 file.write(" ".join(words) + "\n")
 
 
+# Function to translate script to Arabic
+def translate_script_to_arabic(script_content):
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    try:
+        translation_content = model.generate_content(
+            f"Translate the following English text to Arabic:\n{script_content}"
+        )
+        return translation_content.text.strip()
+    except Exception as e:
+        logging.error(f"Error generating Arabic translation: {e}")
+        return "Error generating Arabic translation. Please check the logs."
+
+
 # Main script
 def main():
     logging.info("We are writing the script. It can take up to 3 minutes!")
@@ -113,11 +121,22 @@ def main():
     logging.info(f"The script file '{script_filename}' has been created and is ready!")
     print(f"The script file '{script_filename}' has been created and is ready!")
 
-    # Save the keywords to a text file for image search
+    # Save keywords to a separate file
     keywords_filename = f"image_search_{today}.txt"
     save_keywords(keywords, keywords_filename)
     logging.info(f"The keywords file '{keywords_filename}' has been created and is ready!")
     print(f"The keywords file '{keywords_filename}' has been created and is ready!")
+
+    # Generate Arabic translation of the script
+    logging.info("Translating the script to Arabic.")
+    arabic_translation = translate_script_to_arabic(script_content)
+    translation_filename = f"war_news_script_arabic_{today}.txt"
+
+    with open(translation_filename, "w", encoding="utf-8") as file:
+        file.write(arabic_translation)
+
+    logging.info(f"The Arabic translation file '{translation_filename}' has been created and is ready!")
+    print(f"The Arabic translation file '{translation_filename}' has been created and is ready!")
 
 
 # Run the script
