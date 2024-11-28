@@ -81,7 +81,7 @@ def main():
     # Perform Bing search for images related to the keywords
     logging.info("Performing Bing search for visuals related to the keywords.")
     total_images_downloaded = 0
-    max_images_per_keyword = 5
+    max_images_per_keyword = 1
 
     for keyword in keywords:
         logging.info(f"Searching for visuals related to: {keyword}")

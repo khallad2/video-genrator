@@ -109,6 +109,7 @@ def create_video(images, videos, voiceover_path, output_filename, background_mus
     #         except Exception as e:
     #             logging.error(f"Error creating subtitle clip: {e}")
 
+    logging.info("Loading voiceover.")
     # Add the voiceover before background music
     if os.path.exists(voiceover_path):
         try:
@@ -120,16 +121,16 @@ def create_video(images, videos, voiceover_path, output_filename, background_mus
         except Exception as e:
             logging.error(f"Error loading voiceover {voiceover_path}: {e}")
 
-        # Add background music if provided, and ensure it plays before the voiceover
-    if background_music_path and os.path.exists(background_music_path):
-        try:
-            background_music = AudioFileClip(
-                background_music_path)  # .fx(mp.audio.fx.all.volumex, 0.03)  # Lower volume for background music
-            # background_music = background_music.set_duration(final_clip.duration)
-            final_audio = CompositeAudioClip([background_music])
-            final_clip = final_clip.with_audio(final_audio)
-        except Exception as e:
-            logging.error(f"Error loading background music {background_music_path}: {e}")
+    #     # Add background music if provided, and ensure it plays before the voiceover
+    # if background_music_path and os.path.exists(background_music_path):
+    #     try:
+    #         background_music = AudioFileClip(
+    #             background_music_path)  # .fx(mp.audio.fx.all.volumex, 0.03)  # Lower volume for background music
+    #         # background_music = background_music.set_duration(final_clip.duration)
+    #         final_audio = CompositeAudioClip([background_music])
+    #         final_clip = final_clip.with_audio(final_audio)
+    #     except Exception as e:
+    #         logging.error(f"Error loading background music {background_music_path}: {e}")
 
     # Write the output video file
     try:
@@ -140,10 +141,10 @@ def create_video(images, videos, voiceover_path, output_filename, background_mus
 # Main script
 def main():
     visuals_folder = "visuals"
-    voiceover_path = f"war_news_voiceover_{date.today().strftime('%Y-%m-%d')}.mp3"
-    output_filename = f"war_news_video_{date.today().strftime('%Y-%m-%d')}.mp4"
+    voiceover_path = f"book_summary_arabic_voiceover_{date.today().strftime('%Y-%m-%d')}.mp3"
+    output_filename = f"book_summary_video_{date.today().strftime('%Y-%m-%d')}.mp4"
     background_music_path = "background_music.mp3"  # Path to your background music
-    subtitles_file = f"war_news_script_arabic_{date.today().strftime('%Y-%m-%d')}.txt"
+    subtitles_file = f"book_summary_script_arabic_{date.today().strftime('%Y-%m-%d')}.txt"
 
     logging.info("Loading visuals.")
     images, videos = load_visuals(visuals_folder)

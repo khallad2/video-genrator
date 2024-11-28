@@ -28,20 +28,15 @@ API_KEY = os.getenv("API_KEY")
 # Configure the Google Generative AI library
 genai.configure(api_key=API_KEY)
 
-# Specify the regions for war news coverage
-regions = ["Europe"]
-
 # Set the desired video length in minutes
 video_length_minutes = 1
 
-
 # Function to create an attractive script from the news
-def create_script(news_items, regions, video_length_minutes):
+def create_script(news_items, regions, video_length_minutes, prompt, intro, sub_intro, outro):
     script_lines = []
-    script_lines.append("Welcome to today's in-depth coverage of the ongoing global conflicts and important updates!")
+    script_lines.append(intro)
     script_lines.append("\n")
-    script_lines.append(
-        "Here are the top developments in Europe, providing you with all the critical updates from the front lines and diplomatic tables around the world:")
+    script_lines.append(sub_intro)
     script_lines.append("\n")
 
     item_count = 0
@@ -63,7 +58,7 @@ def create_script(news_items, regions, video_length_minutes):
     while item_count * estimated_time_per_item < total_seconds:
         try:
             filler_content = model.generate_content(
-                "Provide a concise and informative summary of maximum 2 lines about the current European conflict developments without repeating introductory phrases. Focus on war and conflict events in Europe, key updates, and notable diplomatic activities, ensuring a continuous and engaging flow throughout the segment. The tone should be authoritative and engaging. Include a few keywords at the end under the title 'keyWordsForImages'."
+                prompt
             )
             response_text = filler_content.text
             script_part, keyword_part = response_text.split('keyWordsForImages', 1)
@@ -77,7 +72,7 @@ def create_script(news_items, regions, video_length_minutes):
 
     script_lines.append("\n")
     script_lines.append(
-        "That's all for today on the major conflicts and diplomatic efforts unfolding globally. Stay informed by subscribing to our channel and turning on notifications for daily updates!")
+        outro)
 
     return "\n".join(script_lines), keywords
 
@@ -97,23 +92,47 @@ def translate_script_to_arabic(script_content):
     model = genai.GenerativeModel("gemini-1.5-flash")
     try:
         translation_content = model.generate_content(
-            f"Translate the following English text to Arabic:\n{script_content}"
+            f"Translate the following English text to Egyptian Arabic:\n{script_content}"
+            "Critical:  Make sure that there is no '*' in the script and only arabic is allowed."
         )
         return translation_content.text.strip()
     except Exception as e:
         logging.error(f"Error generating Arabic translation: {e}")
         return "Error generating Arabic translation. Please check the logs."
 
+# Function to translate script to German
+def translate_script_to_german(script_content):
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    try:
+        translation_content = model.generate_content(
+            f"Translate the following English text to German:\n{script_content}"
+            "Critical:  Make sure that there is no '*' in the script and only german is allowed."
+        )
+        return translation_content.text.strip()
+    except Exception as e:
+        logging.error(f"Error generating German translation: {e}")
+        return "Error generating Arabic translation. Please check the logs."
 
 # Main script
 def main():
+    # prompt = "Provide a concise and informative summary of maximum 2 lines about the current European conflict developments without repeating introductory phrases. Focus on war and conflict events in Europe, key updates, and notable diplomatic activities, ensuring a continuous and engaging flow throughout the segment. The tone should be authoritative and engaging. Include a few keywords at the end under the title 'keyWordsForImages'."
+    # prompt = "Create a concise and informative 3-line motivational text aimed at professionals, for a viral Instagram and YouTube video that motivates professionals to stop procrastinating and become more active. Start with a compelling hook to grab attention instantly, followed by relatable examples, quick actionable tips, and an energetic tone. Conclude with a strong call-to-action to inspire viewers to take immediate steps and share the video. The tone should be authoritative and engaging. Ensure that the response does not include any special characters except for ?, !, and. Make sure that there is no * in the script. Include keywords at the end under the title 'keyWordsForImages' every keyword in separate line without any special character."
+    prompt = ("Summarize atomic Habits book in maximum 10 lines, in a professional and engaging way, highlighting the main points, key techniques, and central topics covered. Provide clear explanations of the concepts and actionable takeaways where applicable. Ensure the summary captures the essence of the book while maintaining an authoritative and captivating tone suitable for professional readers."
+              "The tone should be authoritative and engaging. "
+              "Ensure that the response does not include any special characters like '*'."
+              "Critical:  Make sure that there is no '*' in the script."
+              "Include number of keywords for the most relevant image search in bing at the end under the title 'keyWordsForImages' every keyword in separate line without any special character."
+              )
+    intro = "" #"Welcome to today's motivational guide on breaking free from procrastination and taking charge of your professional life!"
+    sub_intro = "" #"practical strategies, actionable advice, and inspiring examples to help you stay active and achieve your goals."
+    outro = ""
     logging.info("We are writing the script. It can take up to 3 minutes!")
     # Create the script
-    script_content, keywords = create_script([], regions, video_length_minutes)
+    script_content, keywords = create_script([], [], video_length_minutes, prompt, intro, sub_intro, outro)
     logging.info("We are creating the script file. It can take up to 1 minute!")
     # Save the script to a .txt file with today's date
     today = date.today().strftime("%Y-%m-%d")
-    script_filename = f"war_news_script_{today}.txt"
+    script_filename = f"book_summary_script_{today}.txt"
 
     with open(script_filename, "w", encoding="utf-8") as file:
         file.write(script_content)
@@ -130,13 +149,24 @@ def main():
     # Generate Arabic translation of the script
     logging.info("Translating the script to Arabic.")
     arabic_translation = translate_script_to_arabic(script_content)
-    translation_filename = f"war_news_script_arabic_{today}.txt"
+    translation_filename = f"book_summary_script_arabic_{today}.txt"
 
     with open(translation_filename, "w", encoding="utf-8") as file:
         file.write(arabic_translation)
 
     logging.info(f"The Arabic translation file '{translation_filename}' has been created and is ready!")
     print(f"The Arabic translation file '{translation_filename}' has been created and is ready!")
+
+    # Generate German translation of the script
+    logging.info("Translating the script to German.")
+    german_translation = translate_script_to_german(script_content)
+    german_translation_filename = f"book_summary_script_german_{today}.txt"
+
+    with open(german_translation_filename, "w", encoding="utf-8") as file:
+        file.write(german_translation)
+
+    logging.info(f"The German translation file '{german_translation_filename}' has been created and is ready!")
+    print(f"The German translation file '{german_translation_filename}' has been created and is ready!")
 
 
 # Run the script

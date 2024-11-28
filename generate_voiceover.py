@@ -51,7 +51,7 @@ def generate_voiceover(script_filename, output_filename):
             script_content = script_file.read()
             payload = {
                 "text": script_content,
-                "model_id": "eleven_monolingual_v1",
+                "model_id": "eleven_multilingual_v2",
                 "voice_settings": {
                     "stability": 0.5,
                     "similarity_boost": 0.5
@@ -82,12 +82,19 @@ def generate_voiceover(script_filename, output_filename):
 def main():
     # Define the script file and output file names
     today = date.today().strftime("%Y-%m-%d")
-    script_filename = f"war_news_script_{today}.txt"
-    output_filename = f"war_news_voiceover_{today}.mp3"
+    script_filename = f"book_summary_script_{today}.txt"
+    arabic_translation_script_filename = f"book_summary_script_arabic_{today}.txt"
+    german_translation_script_filename = f"book_summary_script_german_{today}.txt"
+    arabic_output_filename = f"book_summary_arabic_voiceover_{today}.mp3"
+    german_output_filename = f"book_summary_german_voiceover_{today}.mp3"
 
     # Generate the voiceover using Elevenlabs API
-    logging.info("Generating voiceover from the script.")
-    generate_voiceover(script_filename, output_filename)
+    logging.info("Generating German voiceover from the script.")
+    generate_voiceover(german_translation_script_filename, german_output_filename)
+
+    # Generate the voiceover translation using Elevenlabs API
+    logging.info("Generating Arabic voiceover from the script.")
+    generate_voiceover(arabic_translation_script_filename, arabic_output_filename)
 
 
 # Run the script
