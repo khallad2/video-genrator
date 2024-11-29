@@ -1,9 +1,8 @@
 import os
-import moviepy as mp
 from datetime import date
 import logging
 import random
-from moviepy import concatenate_videoclips, CompositeVideoClip, AudioFileClip, CompositeAudioClip, ImageClip, VideoFileClip
+from moviepy import  concatenate_videoclips, CompositeVideoClip, AudioFileClip, CompositeAudioClip, ImageClip, VideoFileClip
 from moviepy.video.fx.FadeIn import FadeIn
 from moviepy.video.fx.FadeOut import FadeOut
 from moviepy.video.fx.Resize import Resize
@@ -73,22 +72,27 @@ def create_video(image_path, voiceover_path, output_filename, background_music_p
         logging.error(f"Error processing image {image_path}: {e}")
         return
 
-    # Load and add Arabic subtitles
+        # Load and add Arabic subtitles
     if subtitles_file:
         subtitles = load_subtitles(subtitles_file)
         for text, start, end in subtitles:
             try:
-                subtitle_clip = TextClip(font='Arial', text=text, font_size=24, duration=end-start, start= start, color='white', size=(1920, 100), margin=(None, None), bg_color=None, stroke_color=None, stroke_width=0, method='caption', text_align='left', horizontal_align='center', vertical_align='center', interline=4, transparent=True)
-                # subtitle_clip = subtitle_clip.start(start)
+                subtitle_clip = TextClip(font='Arial', text=text, font_size=44, duration=end - start, color='black',
+                                             size=(1920, 100), margin=(None, None), bg_color=None, stroke_color='black',
+                                             stroke_width=10, method='caption', text_align='center',
+                                             horizontal_align='center', vertical_align='center', interline=4,
+                                             transparent=False)
                 final_clip = CompositeVideoClip([final_clip, subtitle_clip])
             except Exception as e:
-                logging.error(f"Error creating subtitle clip: {e}")
+                    logging.error(f"Error creating subtitle clip: {e}")
+
 
     # Add background music if provided, and ensure it plays before the voiceover
     if background_music_path and os.path.exists(background_music_path):
         try:
-            background_music = AudioFileClip(background_music_path, duration=final_clip.duration).max_volume(0.03)  # Lower volume for background music
-            # background_music = background_music.duration(final_clip.duration)
+            background_music = AudioFileClip(background_music_path)
+            final_clip = CompositeVideoClip([final_clip])  # Use the CompositeVideoClip to adjust duration if needed
+            final_clip.duration = background_music.duration  # Adjust video duration to match voiceover duration
             final_audio = CompositeAudioClip([background_music])
             final_clip = final_clip.with_audio(final_audio)
         except Exception as e:
@@ -97,10 +101,16 @@ def create_video(image_path, voiceover_path, output_filename, background_music_p
     # Add the voiceover and adjust the length of the video to match the voiceover
     if os.path.exists(voiceover_path):
         try:
+            background_music = AudioFileClip(background_music_path)
+            final_clip = CompositeVideoClip([final_clip])  # Use the CompositeVideoClip to adjust duration if needed
+            final_clip.duration = background_music.duration  # Adjust video duration to match voiceover duration
+            final_audio = CompositeAudioClip([background_music])
+            final_clip = final_clip.with_audio(final_audio)
+
             voiceover = AudioFileClip(voiceover_path)
             final_clip = CompositeVideoClip([final_clip])  # Use the CompositeVideoClip to adjust duration if needed
             final_clip.duration = voiceover.duration  # Adjust video duration to match voiceover duration
-            final_audio = CompositeAudioClip([voiceover])
+            final_audio = CompositeAudioClip([final_clip.audio, voiceover])
             final_clip = final_clip.with_audio(final_audio)
         except Exception as e:
             logging.error(f"Error loading voiceover {voiceover_path}: {e}")
@@ -142,9 +152,9 @@ def main():
     create_video(images[0], german_voiceover_path, german_output_filename, background_music_path, subtitles_file)
     logging.info("German Video creation completed.")
 
-    logging.info("Creating the Arabic video.")
-    create_video(images[0], arabic_voiceover_path, arabic_output_filename, background_music_path, subtitles_file)
-    logging.info("Arabic Video creation completed.")
+    # logging.info("Creating the Arabic video.")
+    # create_video(images[0], arabic_voiceover_path, arabic_output_filename, background_music_path, subtitles_file)
+    # logging.info("Arabic Video creation completed.")
 
 # Run the script
 if __name__ == "__main__":
